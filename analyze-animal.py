@@ -9,6 +9,7 @@ import base64
 from io import BytesIO
 from transformers import CLIPProcessor, CLIPModel
 from flask import Flask, request, jsonify
+import json
 
 app = Flask(__name__)
 
@@ -30,7 +31,7 @@ def classify_image():
         if not image_data:
             raise KeyError('Missing image_url or image_data parameter')
     except KeyError as e:
-        return jsonify({'error': str(e)}), 400
+        return json.dumps({'error': str(e)}), 400, {'Content-Type': 'application/json'}
 
     try:
         # Check if the input is a URL or base64 data
@@ -66,18 +67,18 @@ def classify_image():
         # Prepare the response
         response = {
             "is_dangerous": is_dangerous,
-            "confidence": max_prob.item(),
+            "confidence": float(max_prob.item()),  # Convert to float for JSON serialization
             "animal": dangerous_animals[max_index.item()] if is_dangerous else "safe animal"
         }
 
-        return jsonify(response)
+        return json.dumps(response), 200, {'Content-Type': 'application/json'}
 
     except requests.exceptions.RequestException as e:
-        return jsonify({'error': f'Error fetching image: {str(e)}'}), 400
+        return json.dumps({'error': f'Error fetching image: {str(e)}'}), 400, {'Content-Type': 'application/json'}
     except (ValueError, IOError) as e:
-        return jsonify({'error': f'Error processing image: {str(e)}'}), 400
+        return json.dumps({'error': f'Error processing image: {str(e)}'}), 400, {'Content-Type': 'application/json'}
     except Exception as e:
-        return jsonify({'error': f'Unexpected error: {str(e)}'}), 500
+        return json.dumps({'error': f'Unexpected error: {str(e)}'}), 500, {'Content-Type': 'application/json'}
 
 if __name__ == '__main__':
     app.run(debug=True)
